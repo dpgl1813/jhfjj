@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+	<title>作者分身 - 流水句增强版</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+		:root {
+			--bg-color: #f5f7fa;
+			--card-bg: #ffffff;
+			--text-color: #1e293b;
+			--border-color: #e2e8f0;
+			--primary: #3b82f6;
+			--primary-hover: #2563eb;
+			--secondary: #64748b;
+			--danger: #ef4444;
+			--success: #10b981;
+			--shadow: 0 1px 3px rgba(0,0,0,0.1);
+			--modal-bg: rgba(0,0,0,0.5);
+		}
+		body.dark {
+			--bg-color: #0f172a;
+			--card-bg: #1e293b;
+			--text-color: #f1f5f9;
+			--border-color: #334155;
+		}
+		body {
+			background-color: var(--bg-color);
+			color: var(--text-color);
+			font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+			transition: background-color 0.3s, color 0.3s;
+			margin: 0;
+			padding: 0;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+		.top-bar {
+			background: var(--card-bg);
+			border-bottom: 1px solid var(--border-color);
+			padding: 12px 20px;
+			display: flex;
+			justify-content: flex-end;
+			gap: 16px;
+			z-index: 10;
+		}
+		.top-bar button {
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			padding: 6px;
+			border-radius: 50%;
+			transition: background 0.2s;
+			color: var(--text-color);
+		}
+		.top-bar button:hover {
+			background: var(--border-color);
+		}
+		.main-content {
+			flex: 1;
+			overflow-y: auto;
+			padding: 16px;
+			padding-bottom: 80px;
+		}
+		.page {
+			display: none;
+			animation: fadeIn 0.2s ease;
+		}
+		.page.active {
+			display: block;
+		}
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(8px);}
+			to { opacity: 1; transform: translateY(0);}
+		}
+		.bottom-nav {
+			background: var(--card-bg);
+			border-top: 1px solid var(--border-color);
+			display: flex;
+			justify-content: space-around;
+			padding: 8px 0 12px;
+			z-index: 10;
+		}
+		.nav-item {
+			flex: 1;
+			text-align: center;
+			padding: 8px 0;
+			color: var(--secondary);
+			font-size: 0.8rem;
+			cursor: pointer;
+			transition: color 0.2s;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 4px;
+		}
+		.nav-item.active {
+			color: var(--primary);
+			font-weight: 500;
+		}
+		.nav-icon {
+			font-size: 1.4rem;
+		}
+		.section {
+			margin-bottom: 24px;
+		}
+		.section h3 {
+			margin-bottom: 12px;
+			font-size: 1.2rem;
+			font-weight: 600;
+		}
+		.flex-row {
+			display: flex;
+			gap: 12px;
+			flex-wrap: wrap;
+			align-items: center;
+			margin-bottom: 16px;
+		}
+		input, textarea, select, button {
+			background: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-radius: 12px;
+			padding: 10px 14px;
+			color: var(--text-color);
+			font-size: 0.9rem;
+		}
+		button {
+			background: var(--primary);
+			color: white;
+			border: none;
+			cursor: pointer;
+			transition: background 0.2s;
+		}
+		button:hover {
+			background: var(--primary-hover);
+		}
+		button.secondary {
+			background: var(--secondary);
+		}
+		button.danger {
+			background: var(--danger);
+		}
+		textarea {
+			width: 100%;
+			font-family: monospace;
+			resize: vertical;
+		}
+		.chat-window {
+			background: var(--card-bg);
+			border-radius: 16px;
+			padding: 12px;
+			height: calc(100vh - 240px);
+			overflow-y: auto;
+			margin-bottom: 12px;
+			border: 1px solid var(--border-color);
+		}
+		.chat-message {
+			margin-bottom: 12px;
+			padding: 8px 12px;
+			border-radius: 16px;
+			max-width: 85%;
+		}
+		.user-message {
+			background: var(--primary);
+			color: white;
+			margin-left: auto;
+			text-align: right;
+		}
+		.assistant-message {
+			background: var(--card-bg);
+			border: 1px solid var(--border-color);
+		}
+		.generated-article {
+			background: var(--card-bg);
+			border-radius: 16px;
+			padding: 16px;
+			white-space: pre-wrap;
+			font-family: inherit;
+			max-height: 400px;
+			overflow-y: auto;
+			border: 1px solid var(--border-color);
+		}
+		.status {
+			font-size: 0.8rem;
+			color: var(--secondary);
+			margin-top: 8px;
+		}
+		.progress-bar {
+			width: 100%;
+			height: 4px;
+			background: var(--border-color);
+			border-radius: 2px;
+			overflow: hidden;
+			margin: 8px 0;
+		}
+		.progress-fill {
+			width: 0%;
+			height: 100%;
+			background: var(--primary);
+			transition: width 0.2s;
+		}
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: var(--modal-bg);
+			backdrop-filter: blur(4px);
+			z-index: 1000;
+			justify-content: center;
+			align-items: center;
+		}
+		.modal.active {
+			display: flex;
+		}
+		.modal-content {
+			background: var(--card-bg);
+			border-radius: 24px;
+			width: 90%;
+			max-width: 500px;
+			max-height: 80vh;
+			overflow-y: auto;
+			padding: 24px;
+			position: relative;
+		}
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+		}
+		.modal-header h2 {
+			font-size: 1.3rem;
+		}
+		.close-modal {
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			color: var(--text-color);
+		}
+		.setting-section {
+			margin-bottom: 24px;
+		}
+		.setting-section h3 {
+			font-size: 1rem;
+			margin-bottom: 12px;
+			border-left: 3px solid var(--primary);
+			padding-left: 10px;
+		}
+		.setting-item {
+			margin-bottom: 12px;
+		}
+		.setting-item label {
+			display: block;
+			margin-bottom: 4px;
+			font-size: 0.85rem;
+			color: var(--secondary);
+		}
+		.setting-item input {
+			width: 100%;
+		}
+		.author-list-modal {
+			list-style: none;
+			max-height: 200px;
+			overflow-y: auto;
+			margin-bottom: 12px;
+			border: 1px solid var(--border-color);
+			border-radius: 12px;
+		}
+		.author-list-modal li {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 10px 12px;
+			border-bottom: 1px solid var(--border-color);
+		}
+		.author-list-modal li:last-child {
+			border-bottom: none;
+		}
+		.author-list-modal li.active {
+			background: rgba(59,130,246,0.1);
+		}
+		.author-name-modal {
+			flex: 1;
+			cursor: pointer;
+			padding: 4px;
+			border-radius: 6px;
+		}
+		.author-name-modal:hover {
+			background: var(--border-color);
+		}
+		.author-actions-modal {
+			display: flex;
+			gap: 8px;
+		}
+		.author-actions-modal button {
+			background: none;
+			border: none;
+			cursor: pointer;
+			font-size: 1rem;
+			padding: 4px 8px;
+			border-radius: 6px;
+			color: var(--text-color);
+		}
+		.author-actions-modal button:hover {
+			background: var(--border-color);
+		}
+		.test-result {
+			font-size: 0.8rem;
+			margin-top: 4px;
+			padding: 4px;
+		}
+		.test-success {
+			color: var(--success);
+		}
+		.test-error {
+			color: var(--danger);
+		}
+		.typing-indicator {
+			color: var(--secondary);
+			font-style: italic;
+			background: var(--card-bg);
+		}
+		.book-preview {
+			background: var(--card-bg);
+			border-radius: 12px;
+			padding: 8px;
+			margin-top: 8px;
+			font-size: 0.8rem;
+			border-left: 3px solid var(--primary);
+			white-space: pre-wrap;
+		}
+		.mode-switch {
+			background: var(--card-bg);
+			border-radius: 20px;
+			display: inline-flex;
+			padding: 2px;
+			border: 1px solid var(--border-color);
+		}
+		.mode-switch button {
+			background: transparent;
+			border: none;
+			padding: 6px 12px;
+			border-radius: 18px;
+			cursor: pointer;
+			color: var(--text-color);
+		}
+		.mode-switch button.active {
+			background: var(--primary);
+			color: white;
+		}
+		.theme-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin: 12px 0;
+		}
+		.theme-tag {
+			background: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-radius: 20px;
+			padding: 6px 12px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+		.theme-tag.selected {
+			background: var(--primary);
+			color: white;
+			border-color: var(--primary);
+		}
+		.angle-list {
+			margin: 12px 0;
+			max-height: 200px;
+			overflow-y: auto;
+			border: 1px solid var(--border-color);
+			border-radius: 12px;
+			padding: 8px;
+		}
+		.angle-item {
+			padding: 6px 8px;
+			border-bottom: 1px solid var(--border-color);
+			font-size: 0.85rem;
+		}
+		.angle-item:last-child {
+			border-bottom: none;
+		}
+		.series-control {
+			margin: 12px 0;
+			display: flex;
+			gap: 12px;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+	</style>
+</head>
+<body>
+<div class="top-bar">
+	<button id="darkModeToggle" title="深色模式">🌙</button>
+	<button id="settingsBtn" title="设置">⚙️</button>
+</div>
+
+<div class="main-content">
+	<div id="pageGenerate" class="page active">
+		<div class="section">
+			<div class="flex-row" style="justify-content: space-between;">
+				<h3>✍️ 生成随笔（第一人称）</h3>
+				<div class="mode-switch" id="modeSwitch">
+					<button id="modeNormal" class="active">普通模式</button>
+					<button id="modeBook">书籍创作</button>
+				</div>
+			</div>
+			<div class="flex-row">
+				<input type="text" id="inspirationInput" placeholder="输入灵感、关键词或想法...">
+				<button id="generateBtn">生成文章</button>
+			</div>
+			<div id="bookPanel" style="display: none;">
+				<div class="flex-row">
+					<input type="file" id="bookFile" accept=".txt,.md">
+					<button id="extractNotesBtn" class="secondary" style="display:none">📝 提取笔记</button>
+					<button id="clearBookBtn" class="secondary" style="display:none">清除书籍</button>
+				</div>
+				<div id="bookPreview" class="book-preview" style="display:none;"></div>
+				<div id="bookSeriesPanel" style="display:none;">
+					<div class="flex-row">
+						<span>文章篇数: <input type="number" id="articleCount" min="1" max="30" value="12" style="width: 70px;"></span>
+						<button id="generateSeriesBtn" class="secondary">📌 生成系列角度</button>
+					</div>
+					<div id="themeContainer" style="display:none;">
+						<div>选择写作主题：</div>
+						<div id="themeList" class="theme-list"></div>
+					</div>
+					<div id="angleContainer" style="display:none;">
+						<div>文章角度列表（共 <span id="angleCount">0</span> 篇）：</div>
+						<div id="angleList" class="angle-list"></div>
+					</div>
+					<div id="seriesProgress" class="series-control" style="display:none;">
+						<span>当前第 <span id="currentIndex">1</span> / <span id="totalAngles">0</span> 篇</span>
+						<button id="generateCurrentBtn" class="secondary">✍️ 生成当前篇</button>
+						<button id="nextArticleBtn" class="secondary" disabled>⏩ 下一篇</button>
+					</div>
+				</div>
+			</div>
+			<div class="progress-bar" id="progressBar" style="display: none;">
+				<div class="progress-fill" id="progressFill"></div>
+			</div>
+			<div id="generatedArticle" class="generated-article"></div>
+			<div class="flex-row" style="justify-content: space-between;">
+				<div>
+					<button id="copyArticleBtn" class="secondary" style="display: none;">📋 一键复制</button>
+					<button id="modifyArticleBtn" class="secondary" style="display: none;">✏️ AI修改</button>
+				</div>
+				<div class="status" id="genStatus"></div>
+			</div>
+		</div>
+	</div>
+
+	<div id="pageLearn" class="page">
+		<div class="section">
+			<h3>📄 学习作者文章</h3>
+			<div class="flex-row">
+				<input type="file" id="fileUpload" accept=".txt,.md" multiple>
+				<button id="pasteBtn" class="secondary">📋 粘贴学习</button>
+			</div>
+			<div id="pasteArea" style="display: none;">
+				<textarea id="pasteText" rows="6" placeholder="将文章正文粘贴到这里..."></textarea>
+				<div class="flex-row" style="margin-top: 8px;">
+					<button id="learnPasteBtn">学习粘贴的正文</button>
+				</div>
+			</div>
+			<div class="status" id="learnStatus"></div>
+		</div>
+	</div>
+
+	<div id="pageChat" class="page">
+		<div class="section">
+			<div class="flex-row" style="justify-content: space-between;">
+				<h3>💬 与AI作者对话（深度构建）</h3>
+				<button id="askQuestionBtn" class="secondary">❓ 主动提问</button>
+			</div>
+			<div class="chat-window" id="chatWindow"></div>
+			<div style="position: relative;">
+				<input type="text" id="chatInput" placeholder="输入回答或指令（如“总结一下我”）" style="width: 100%;">
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="bottom-nav">
+	<div class="nav-item" data-page="generate"><div class="nav-icon">✍️</div><div>生成文章</div></div>
+	<div class="nav-item" data-page="learn"><div class="nav-icon">📚</div><div>学习文章</div></div>
+	<div class="nav-item" data-page="chat"><div class="nav-icon">💬</div><div>对话</div></div>
+</div>
+
+<div id="settingsModal" class="modal">
+	<div class="modal-content">
+		<div class="modal-header">
+			<h2>设置</h2>
+			<button class="close-modal" id="closeModalBtn">&times;</button>
+		</div>
+		<div class="setting-section">
+			<h3>API 配置</h3>
+			<div class="setting-item"><label>API 地址</label><input type="text" id="apiUrl" placeholder="https://api.deepseek.com/v1/chat/completions"></div>
+			<div class="setting-item"><label>模型名称</label><input type="text" id="modelName" placeholder="deepseek-chat"></div>
+			<div class="setting-item"><label>API Key</label><input type="password" id="apiKey" placeholder="sk-..."></div>
+			<div class="flex-row" style="justify-content: space-between; margin-top: 8px;">
+				<button id="testApiBtn" class="secondary">测试连接</button>
+				<button id="saveApiBtn">保存配置</button>
+			</div>
+			<div id="apiTestResult" class="test-result"></div>
+		</div>
+		<div class="setting-section">
+			<h3>作者分身库</h3>
+			<ul id="authorListModal" class="author-list-modal"></ul>
+			<div class="flex-row" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+				<button id="newAuthorModalBtn" class="secondary">➕ 新建作者</button>
+				<button id="exportAuthorModalBtn" class="secondary">📤 导出当前作者</button>
+				<button id="completeProfileBtn" class="secondary">✨ 补全画像</button>
+				<div><label for="importFileDirect" style="background: var(--secondary); color: white; padding: 8px 12px; border-radius: 12px; cursor: pointer;">📥 导入作者</label><input type="file" id="importFileDirect" accept=".json" style="display: none;"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	// ---------- 全局数据 ----------
+	let currentAuthorId = null;
+	let authors = {};
+	let currentChatHistory = [];
+	let undoStack = [];
+	let currentBookContent = null;
+	let currentBookName = "";
+	let bookMode = false;
+	let currentBookNotes = null;
+	let currentThemes = [];
+	let currentTheme = "";
+	let currentAngles = [];
+	let currentAngleIndex = 0;
+	let currentGeneratedText = '';
+
+	// 辅助函数
+	function extractJSON(text) {
+		let match = text.match(/\{[\s\S]*\}/);
+		if (match) return match[0];
+		match = text.match(/\[[\s\S]*\]/);
+		if (match) return match[0];
+		return null;
+	}
+
+	// 加载/保存数据
+	function loadAllData() {
+		const data = localStorage.getItem('author_clone_data');
+		if (data) {
+			const parsed = JSON.parse(data);
+			for (let id in parsed) {
+				authors[id] = {
+					profile: parsed[id].profile,
+					messages: parsed[id].messages || [],
+					historyStack: parsed[id].historyStack || []
+				};
+				if (!authors[id].profile.avg_article_length) authors[id].profile.avg_article_length = 600;
+				if (!authors[id].profile.book_notes) authors[id].profile.book_notes = null;
+				if (!authors[id].profile.writing_style) authors[id].profile.writing_style = {};
+			}
+		}
+		const savedCurrent = localStorage.getItem('current_author');
+		if (savedCurrent && authors[savedCurrent]) {
+			currentAuthorId = savedCurrent;
+		} else {
+			if (Object.keys(authors).length === 0) {
+				const defaultId = 'author_' + Date.now();
+				authors[defaultId] = {
+					profile: {
+						name: '我的分身',
+						basic_info: {},
+						thinking_pattern: {},
+						emotional_style: {},
+						desires_and_aversions: {},
+						writing_habits: {典型叙事视角: "第一人称"},
+						core_beliefs: {},
+						limitations: {},
+						conversation_history: [],
+						avg_article_length: 600,
+						book_notes: null,
+						writing_style: {}
+					},
+					messages: [],
+					historyStack: []
+				};
+				currentAuthorId = defaultId;
+				saveAllData();
+			} else {
+				currentAuthorId = Object.keys(authors)[0];
+			}
+		}
+		loadCurrentAuthor();
+	}
+
+	function saveAllData() {
+		const toStore = {};
+		for (let id in authors) {
+			toStore[id] = {
+				profile: authors[id].profile,
+				messages: authors[id].messages,
+				historyStack: authors[id].historyStack
+			};
+		}
+		localStorage.setItem('author_clone_data', JSON.stringify(toStore));
+		localStorage.setItem('current_author', currentAuthorId || '');
+	}
+
+	function loadCurrentAuthor() {
+		if (!currentAuthorId) return;
+		const author = authors[currentAuthorId];
+		if (!author) return;
+		currentChatHistory = author.messages || [];
+		undoStack = author.historyStack || [];
+		renderAuthorListModal();
+		renderChatWindow();
+		if (bookMode && author.profile.book_notes) {
+			showBookNotesPreview();
+		}
+	}
+
+	function saveCurrentAuthor() {
+		if (!currentAuthorId) return;
+		authors[currentAuthorId].messages = currentChatHistory;
+		authors[currentAuthorId].historyStack = undoStack;
+		authors[currentAuthorId].profile.conversation_history = currentChatHistory.map(m => ({
+			role: m.role,
+			content: m.content,
+			timestamp: new Date().toISOString()
+		}));
+		saveAllData();
+	}
+
+	function addMessage(role, content) {
+		undoStack.push({
+			messages: JSON.parse(JSON.stringify(currentChatHistory)),
+			profile: JSON.parse(JSON.stringify(authors[currentAuthorId].profile))
+		});
+		currentChatHistory.push({ role, content });
+		saveCurrentAuthor();
+		renderChatWindow();
+	}
+
+	function renderChatWindow() {
+		const chatDiv = document.getElementById('chatWindow');
+		if (!chatDiv) return;
+		chatDiv.innerHTML = '';
+		currentChatHistory.forEach(msg => {
+			const div = document.createElement('div');
+			div.className = `chat-message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
+			div.textContent = msg.content;
+			chatDiv.appendChild(div);
+		});
+		chatDiv.scrollTop = chatDiv.scrollHeight;
+	}
+
+	function renderAuthorListModal() {
+		const list = document.getElementById('authorListModal');
+		if (!list) return;
+		list.innerHTML = '';
+		for (let id in authors) {
+			const li = document.createElement('li');
+			li.className = id === currentAuthorId ? 'active' : '';
+			const nameSpan = document.createElement('span');
+			nameSpan.className = 'author-name-modal';
+			nameSpan.textContent = authors[id].profile.name || id.slice(0, 8);
+			nameSpan.ondblclick = () => renameAuthor(id);
+			const actionsDiv = document.createElement('div');
+			actionsDiv.className = 'author-actions-modal';
+			const renameBtn = document.createElement('button');
+			renameBtn.textContent = '✏️';
+			renameBtn.onclick = (e) => { e.stopPropagation(); renameAuthor(id); };
+			const deleteBtn = document.createElement('button');
+			deleteBtn.textContent = '🗑️';
+			deleteBtn.onclick = (e) => { e.stopPropagation(); deleteAuthor(id); };
+			actionsDiv.appendChild(renameBtn);
+			actionsDiv.appendChild(deleteBtn);
+			li.appendChild(nameSpan);
+			li.appendChild(actionsDiv);
+			li.onclick = () => switchAuthor(id);
+			list.appendChild(li);
+		}
+	}
+
+	function renameAuthor(id) {
+		const newName = prompt('输入作者名称', authors[id].profile.name || '未命名');
+		if (newName && newName.trim()) {
+			authors[id].profile.name = newName.trim();
+			saveAllData();
+			renderAuthorListModal();
+		}
+	}
+
+	function switchAuthor(id) {
+		if (id === currentAuthorId) return;
+		currentAuthorId = id;
+		loadCurrentAuthor();
+		saveAllData();
+		closeModal();
+	}
+
+	function deleteAuthor(id) {
+		if (Object.keys(authors).length === 1) {
+			alert("至少保留一个作者分身");
+			return;
+		}
+		delete authors[id];
+		if (currentAuthorId === id) currentAuthorId = Object.keys(authors)[0];
+		saveAllData();
+		loadCurrentAuthor();
+	}
+
+	function createNewAuthor() {
+		let name = prompt('输入作者名称', '新作者');
+		if (!name) name = '新作者';
+		const newId = 'author_' + Date.now();
+		authors[newId] = {
+			profile: {
+				name: name,
+				basic_info: {},
+				thinking_pattern: {},
+				emotional_style: {},
+				desires_and_aversions: {},
+				writing_habits: {典型叙事视角: "第一人称"},
+				core_beliefs: {},
+				limitations: {},
+				conversation_history: [],
+				avg_article_length: 600,
+				book_notes: null,
+				writing_style: {}
+			},
+			messages: [],
+			historyStack: []
+		};
+		currentAuthorId = newId;
+		saveAllData();
+		loadCurrentAuthor();
+		addMessage('assistant', `你好！我是${name}。我会通过聊天深入了解你。`);
+		closeModal();
+	}
+
+	function exportAuthor() {
+		const profile = authors[currentAuthorId].profile;
+		const dataStr = JSON.stringify(profile, null, 2);
+		const blob = new Blob([dataStr], {type: 'application/json'});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${authors[currentAuthorId].profile.name || currentAuthorId}_profile.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
+	async function callCustomModel(systemPrompt, userPrompt, temperature = 0.3) {
+		const apiUrl = document.getElementById('apiUrl')?.value.trim();
+		const modelName = document.getElementById('modelName')?.value.trim();
+		const apiKey = document.getElementById('apiKey')?.value.trim();
+		if (!apiUrl || !modelName || !apiKey) throw new Error('请先填写完整的API配置');
+		const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
+		const body = { model: modelName, messages, temperature };
+		const response = await fetch(apiUrl, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+			body: JSON.stringify(body)
+		});
+		if (!response.ok) {
+			let errorMsg = `API请求失败: ${response.status}`;
+			try { const errorData = await response.json(); errorMsg += ` ${JSON.stringify(errorData)}`; } catch (e) {}
+			throw new Error(errorMsg);
+		}
+		const data = await response.json();
+		if (data.choices && data.choices[0] && data.choices[0].message) return data.choices[0].message.content;
+		throw new Error('返回格式异常');
+	}
+
+	async function testApiConnection() {
+		const testBtn = document.getElementById('testApiBtn');
+		const resultDiv = document.getElementById('apiTestResult');
+		if (!testBtn || !resultDiv) return;
+		testBtn.disabled = true;
+		resultDiv.innerHTML = '测试中...';
+		resultDiv.className = 'test-result';
+		try {
+			await callCustomModel('你是一个助手', '回复“OK”', 0.3);
+			resultDiv.innerHTML = '✅ 连接成功！';
+			resultDiv.className = 'test-result test-success';
+		} catch (err) {
+			resultDiv.innerHTML = `❌ 测试失败：${err.message}`;
+			resultDiv.className = 'test-result test-error';
+		} finally {
+			testBtn.disabled = false;
+		}
+	}
+
+	async function askActiveQuestion() {
+		try {
+			const profile = authors[currentAuthorId].profile;
+			const dimensions = ['basic_info', 'thinking_pattern', 'emotional_style', 'desires_and_aversions', 'writing_habits', 'core_beliefs', 'limitations'];
+			const missing = dimensions.filter(d => !profile[d] || Object.keys(profile[d]).length === 0);
+			let prompt;
+			if (missing.length > 0) {
+				prompt = `你是一个专业的作者分身构建助手。当前用户画像中，以下维度信息不足：${missing.join(', ')}。请根据已有信息，向用户提出一个具体、有深度的问题，目的是深入了解他/她的${missing[0]}方面。一次只问一个问题，用一句简短的话。只输出问题。`;
+			} else {
+				prompt = `你是一个专业的作者分身构建助手。当前用户画像如下（JSON）：${JSON.stringify(profile, null, 2)}。请找出一个最需要深挖的点，提出一个具体、有深度的问题，引导用户进一步分享。一次只问一个问题，用一句简短的话。只输出问题。`;
+			}
+			const result = await callCustomModel("你是一个善于引导对话、深入了解用户的助手。", prompt, 0.3);
+			addMessage('assistant', result);
+		} catch (err) {
+			addMessage('assistant', `提问失败：${err.message}`);
+		}
+	}
+
+	async function completeProfile() {
+		const profile = authors[currentAuthorId].profile;
+		const prompt = `你是一个专业的作者分身构建助手。现有作者画像如下（JSON）：${JSON.stringify(profile, null, 2)}。请根据已有信息，推测并补充作者可能缺失的维度，例如更具体的价值观、思维习惯、情感倾向、写作偏好等。以JSON格式返回要合并的新字段，不要包含已有字段。只返回JSON对象。`;
+		try {
+			const result = await callCustomModel("你是一个擅长洞察人物内在特质的专家。", prompt, 0.5);
+			const jsonStr = extractJSON(result);
+			if (jsonStr) {
+				const updates = JSON.parse(jsonStr);
+				for (let key in updates) {
+					if (typeof updates[key] === 'object' && profile[key]) Object.assign(profile[key], updates[key]);
+					else profile[key] = updates[key];
+				}
+				saveCurrentAuthor();
+				alert('画像补全完成！');
+			} else {
+				alert('补全失败：模型返回格式错误');
+			}
+		} catch (err) {
+			alert(`补全失败：${err.message}`);
+		}
+	}
+
+	async function learnFromText(content, sourceName) {
+		try {
+			const profile = authors[currentAuthorId].profile;
+			const prompt = `以下是作者的一篇文章（来源：${sourceName}）。请分析这篇文章，提取作者的写作风格、常用词汇、句式偏好、价值观、情感基调、思维特征、结尾方式等。以JSON格式返回，合并到现有的画像中。现有画像：${JSON.stringify(profile)}。只返回JSON，不要其他文字。文章内容：\n${content.slice(0, 6000)}`;
+			const result = await callCustomModel("你是一个文本分析专家，擅长提取作者特征。", prompt, 0.3);
+			const jsonStr = extractJSON(result);
+			if (jsonStr) {
+				const newData = JSON.parse(jsonStr);
+				for (let key in newData) {
+					if (typeof newData[key] === 'object' && profile[key]) Object.assign(profile[key], newData[key]);
+					else profile[key] = newData[key];
+				}
+			} else {
+				profile.raw_analysis = result;
+			}
+			if (!profile.total_article_length) { profile.total_article_length = 0; profile.article_count = 0; }
+			profile.total_article_length += content.length;
+			profile.article_count += 1;
+			profile.avg_article_length = Math.round(profile.total_article_length / profile.article_count);
+			saveCurrentAuthor();
+			document.getElementById('learnStatus').innerHTML = `✅ 已学习：${sourceName} (平均字数 ${profile.avg_article_length})`;
+		} catch (err) {
+			document.getElementById('learnStatus').innerHTML = `❌ 学习失败：${err.message}`;
+			throw err;
+		}
+	}
+
+	async function extractAllNotes(bookContent, bookName) {
+		const CHUNK_SIZE = 15000;
+		const chunks = [];
+		for (let i = 0; i < bookContent.length; i += CHUNK_SIZE) {
+			chunks.push(bookContent.slice(i, i + CHUNK_SIZE));
+		}
+
+		const noteTypes = [
+			{ name: "核心观点", key: "ideas", prompt: "请提取书中的核心观点（作者的主要论断、立场、核心理念）。每条返回JSON对象：{ type: 'idea', content: '...', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" },
+			{ name: "概念定义", key: "concepts", prompt: "请提取书中引入的新术语、重要概念的定义。每条返回JSON对象：{ type: 'concept', content: '...', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" },
+			{ name: "故事/案例", key: "stories", prompt: "请提取书中的完整故事或案例（有人物、情节、结果）。每条返回JSON对象：{ type: 'story', content: '...', summary: '一句话总结', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" },
+			{ name: "金句/名言", key: "quotes", prompt: "请提取书中精炼、有感染力、适合引用的句子。每条返回JSON对象：{ type: 'quote', content: '...', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" },
+			{ name: "数据/事实", key: "facts", prompt: "请提取书中的客观数据、研究结果、历史事实。每条返回JSON对象：{ type: 'fact', content: '...', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" },
+			{ name: "反常识点", key: "counters", prompt: "请提取书中颠覆常规认知的观点或事实。每条返回JSON对象：{ type: 'counter', content: '...', tags: ['标签1','标签2'], source: '章节或位置' }。返回数组。" }
+		];
+
+		let allNotes = { ideas: [], concepts: [], stories: [], quotes: [], facts: [], counters: [] };
+		const totalChunks = chunks.length;
+		const preview = document.getElementById('bookPreview');
+		if (!preview) return allNotes;
+
+		for (let i = 0; i < totalChunks; i++) {
+			const chunk = chunks[i];
+			preview.innerHTML = `📖 正在处理第 ${i+1}/${totalChunks} 片段...<br>`;
+			for (let type of noteTypes) {
+				preview.innerHTML = `📖 正在提取【${type.name}】 (片段 ${i+1}/${totalChunks})...`;
+				const prompt = `请从以下书籍片段中提取${type.name}。${type.prompt}\n片段：\n${chunk}`;
+				try {
+					const result = await callCustomModel("你是一个善于提炼书籍精华的助手。", prompt, 0.3);
+					const jsonStr = extractJSON(result);
+					if (jsonStr) {
+						const items = JSON.parse(jsonStr);
+						if (Array.isArray(items)) {
+							allNotes[type.key].push(...items);
+						}
+					}
+				} catch (err) {
+					console.warn(`提取${type.name}失败`, err);
+					preview.innerHTML += `<span style="color:red;"> 提取${type.name}失败，继续...</span><br>`;
+				}
+			}
+			await new Promise(r => setTimeout(r, 10));
+		}
+
+		const totalNotes = Object.values(allNotes).flat().length;
+		preview.innerHTML = `📖 书籍《${bookName}》笔记提取完成！共 ${totalNotes} 条素材。`;
+		return allNotes;
+	}
+
+	async function generateThemesAndAngles(notes, profile, targetCount) {
+		const allNotesFlat = Object.values(notes).flat();
+		const notesSummary = allNotesFlat.map(n => n.content).join("\n").slice(0, 8000);
+		const prompt = `你是一位资深编辑。当前作者画像（风格、知识领域、情感基调）如下：${JSON.stringify(profile, null, 2)}。书籍笔记摘要如下：\n${notesSummary}\n\n请完成：
+1. 推荐3-5个适合该作者写作的垂直主题（每个主题一句话）。
+2. 为第一个主题生成${targetCount}个文章角度（每个角度一句话），角度应各有侧重，围绕主题深入挖掘，并尽量匹配相关的笔记（用笔记的content前40字作为标识）。
+输出JSON格式：{ themes: ["主题1", "主题2", ...], angles: [{ angle: "角度描述", relatedNoteIds: ["笔记内容片段1", ...] }] }。`;
+		const result = await callCustomModel("你是一个擅长策划系列内容的专家。", prompt, 0.5);
+		const jsonStr = extractJSON(result);
+		if (jsonStr) {
+			const data = JSON.parse(jsonStr);
+			return data;
+		}
+		throw new Error("生成主题和角度失败");
+	}
+
+	async function generateArticleFromAngle(angle, relatedNotes, profile) {
+		const notesText = relatedNotes.map(n => n).join("\n");
+		const styleDesc = profile.writing_style?.description || "使用意合风格，减少显性连接词，多用逗号串联动作，主语承前省略，适当夹叙夹议。";
+		const systemPrompt = `你正在扮演一位作者，以下是关于他/她的完整人设：${JSON.stringify(profile, null, 2)}。请严格遵循以下写作风格要求：${styleDesc}。请根据以下文章角度和相关笔记素材，用第一人称写一篇完整的公众号随笔。文章要自然真实，有完整的开头、展开和结尾，素材要有机融入，不要照搬原文。角度：${angle}\n素材：\n${notesText}`;
+		const result = await callCustomModel(systemPrompt, "请写出随笔。", 0.3);
+		return result;
+	}
+
+	async function generateNormalArticle(inspiration) {
+		const profile = authors[currentAuthorId].profile;
+		const styleDesc = profile.writing_style?.description || "使用意合风格，减少显性连接词，多用逗号串联动作，主语承前省略，适当夹叙夹议。";
+		const systemPrompt = `你正在扮演一位作者，以下是关于他/她的完整人设：${JSON.stringify(profile, null, 2)}。请严格遵循以下写作风格要求：${styleDesc}。用第一人称写一篇随笔，灵感是“${inspiration}”。文章要自然真实，有完整的开头、展开和结尾。字数建议${profile.avg_article_length || 600}字左右。`;
+		const result = await callCustomModel(systemPrompt, "请写出随笔。", 0.3);
+		return result;
+	}
+
+	async function generateArticle(inspiration, isBookMode = false) {
+		const progressBar = document.getElementById('progressBar');
+		const progressFill = document.getElementById('progressFill');
+		const genStatus = document.getElementById('genStatus');
+		if (!progressBar || !progressFill || !genStatus) return;
+		progressBar.style.display = 'block';
+		progressFill.style.width = '0%';
+		genStatus.innerHTML = '准备中...';
+		document.getElementById('copyArticleBtn').style.display = 'none';
+		document.getElementById('modifyArticleBtn').style.display = 'none';
+
+		try {
+			let result;
+			if (!isBookMode) {
+				if (!inspiration) throw new Error('普通模式下请输入灵感');
+				result = await generateNormalArticle(inspiration);
+			} else {
+				if (!currentAngles.length || currentAngleIndex >= currentAngles.length) throw new Error('请先生成系列角度');
+				const angleObj = currentAngles[currentAngleIndex];
+				result = await generateArticleFromAngle(angleObj.angle, angleObj.relatedNoteIds || [], authors[currentAuthorId].profile);
+			}
+			progressFill.style.width = '100%';
+			setTimeout(() => { progressBar.style.display = 'none'; }, 500);
+			document.getElementById('generatedArticle').innerText = result;
+			currentGeneratedText = result;
+			genStatus.innerHTML = `✅ 生成完成 (${result.length}字)`;
+			document.getElementById('copyArticleBtn').style.display = 'inline-block';
+			document.getElementById('modifyArticleBtn').style.display = 'inline-block';
+			if (isBookMode && currentAngleIndex + 1 < currentAngles.length) {
+				document.getElementById('nextArticleBtn').disabled = false;
+			}
+		} catch (err) {
+			progressBar.style.display = 'none';
+			genStatus.innerHTML = `❌ 生成失败：${err.message}`;
+			alert(`生成失败：${err.message}`);
+		}
+	}
+
+	function copyArticle() {
+		if (currentGeneratedText) {
+			navigator.clipboard.writeText(currentGeneratedText).then(() => alert('已复制')).catch(() => alert('复制失败'));
+		}
+	}
+
+	async function modifyArticle() {
+		if (!currentGeneratedText) return;
+		const instruction = prompt('请输入修改要求：');
+		if (!instruction) return;
+		const progressBar = document.getElementById('progressBar');
+		const progressFill = document.getElementById('progressFill');
+		const genStatus = document.getElementById('genStatus');
+		if (!progressBar || !progressFill || !genStatus) return;
+		progressBar.style.display = 'block';
+		progressFill.style.width = '0%';
+		genStatus.innerHTML = '修改中...';
+		try {
+			const profile = authors[currentAuthorId].profile;
+			const styleDesc = profile.writing_style?.description || "使用意合风格，减少显性连接词，多用逗号串联动作，主语承前省略，适当夹叙夹议。";
+			const systemPrompt = `你正在扮演一位作者，人设：${JSON.stringify(profile)}。请根据用户要求修改文章，保持第一人称和作者风格，遵循以下写作风格：${styleDesc}。只输出修改后的文章正文，不要添加任何解释。修改要求：${instruction}`;
+			const result = await callCustomModel(systemPrompt, `原文：\n${currentGeneratedText}\n\n修改后的文章：`, 0.3);
+			progressFill.style.width = '100%';
+			setTimeout(()=>progressBar.style.display='none',500);
+			document.getElementById('generatedArticle').innerText = result;
+			currentGeneratedText = result;
+			genStatus.innerHTML = `✅ 修改完成 (${result.length}字)`;
+		} catch(err) {
+			progressBar.style.display='none';
+			genStatus.innerHTML=`❌ 修改失败：${err.message}`;
+			alert(`修改失败：${err.message}`);
+		}
+	}
+
+	async function handleUserMessage(text) {
+		addMessage('user', text);
+		if (text.includes('总结') || text.includes('了解我')) {
+			const profile = authors[currentAuthorId].profile;
+			const summaryPrompt = `根据以下作者画像，用自然语言总结当前对作者的理解，包括思想、价值观、写作习惯等。不要提问，只输出总结。\n${JSON.stringify(profile)}`;
+			try {
+				const summary = await callCustomModel("", summaryPrompt, 0.3);
+				addMessage('assistant', summary);
+			} catch(err) { addMessage('assistant', '总结失败'); }
+			return;
+		}
+		const typingDiv = document.createElement('div');
+		typingDiv.className = 'chat-message assistant-message typing-indicator';
+		typingDiv.textContent = '对方正在输入...';
+		document.getElementById('chatWindow').appendChild(typingDiv);
+		const profile = authors[currentAuthorId].profile;
+		const conversationContext = currentChatHistory.slice(-5).map(m => `${m.role === 'user' ? '用户' : 'AI'}：${m.content}`).join('\n');
+		const prompt = `你是一个专业的作者分身构建助手。当前用户画像：${JSON.stringify(profile,null,2)}\n对话历史：${conversationContext}\n用户最新说：“${text}”\n请完成两件事：1. 以自然方式回复用户，用一句简短的话。2. 分析是否有新信息，返回JSON更新画像（无则{}）。输出格式：回复文本\n空行\nJSON`;
+		try {
+			const fullResponse = await callCustomModel("你是一个善于引导、深入挖掘用户内心世界的助手。", prompt, 0.3);
+			const typingElement = document.querySelector('.typing-indicator');
+			if (typingElement) typingElement.remove();
+			const lines = fullResponse.split('\n');
+			let replyText = '', jsonPart = '';
+			let foundJson = false;
+			for (let line of lines) {
+				if (!foundJson && line.trim().startsWith('{')) { foundJson = true; jsonPart += line; }
+				else if (foundJson) jsonPart += line;
+				else replyText += (replyText ? '\n' : '') + line;
+			}
+			if (!foundJson) {
+				const match = fullResponse.match(/\{[\s\S]*\}$/);
+				if (match) { jsonPart = match[0]; replyText = fullResponse.slice(0,match.index).trim(); }
+				else replyText = fullResponse;
+			}
+			if (replyText.trim()) addMessage('assistant', replyText);
+			else addMessage('assistant', "嗯，我记下了。");
+			if (jsonPart) {
+				try {
+					const updates = JSON.parse(jsonPart);
+					if (Object.keys(updates).length) {
+						const profileObj = authors[currentAuthorId].profile;
+						for (let key in updates) {
+							if (typeof updates[key] === 'object' && profileObj[key]) Object.assign(profileObj[key], updates[key]);
+							else profileObj[key] = updates[key];
+						}
+						saveCurrentAuthor();
+					}
+				} catch(e) { console.warn("解析画像更新失败",e); }
+			}
+		} catch(err) {
+			const typingElement = document.querySelector('.typing-indicator');
+			if (typingElement) typingElement.remove();
+			addMessage('assistant', "我还在学习，你可以再说详细点吗？");
+		}
+	}
+
+	async function handleFiles(files) { for (let file of files) { try { const text = await file.text(); await learnFromText(text, file.name); } catch(e) { console.error(e); } } }
+
+	function switchPage(pageId) {
+		document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+		document.getElementById(`page${pageId.charAt(0).toUpperCase() + pageId.slice(1)}`).classList.add('active');
+		document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+		document.querySelector(`.nav-item[data-page="${pageId}"]`).classList.add('active');
+		if (pageId === 'chat') document.getElementById('chatInput').focus();
+	}
+
+	function openModal() { document.getElementById('settingsModal').classList.add('active'); renderAuthorListModal(); }
+	function closeModal() { document.getElementById('settingsModal').classList.remove('active'); }
+
+	function initDarkMode() {
+		const isDark = localStorage.getItem('darkMode') === 'true';
+		if (isDark) document.body.classList.add('dark');
+		document.getElementById('darkModeToggle').onclick = () => {
+			document.body.classList.toggle('dark');
+			localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+		};
+	}
+
+	function loadApiConfig() {
+		document.getElementById('apiUrl').value = localStorage.getItem('api_url') || '';
+		document.getElementById('modelName').value = localStorage.getItem('model_name') || '';
+		document.getElementById('apiKey').value = localStorage.getItem('api_key') || '';
+	}
+	function saveApiConfig() {
+		localStorage.setItem('api_url', document.getElementById('apiUrl').value.trim());
+		localStorage.setItem('model_name', document.getElementById('modelName').value.trim());
+		localStorage.setItem('api_key', document.getElementById('apiKey').value.trim());
+		alert('API配置已保存');
+	}
+
+	function loadBookFromFile(file) {
+		const reader = new FileReader();
+		reader.onload = async (e) => {
+			currentBookContent = e.target.result;
+			currentBookName = file.name;
+			const preview = document.getElementById('bookPreview');
+			if (!preview) return;
+			preview.style.display = 'block';
+			preview.innerHTML = `📖 已加载书籍《${currentBookName}》，共 ${currentBookContent.length} 字符。点击“提取笔记”开始处理。`;
+			document.getElementById('extractNotesBtn').style.display = 'inline-block';
+			document.getElementById('clearBookBtn').style.display = 'inline-block';
+			authors[currentAuthorId].profile.book_notes = null;
+			saveCurrentAuthor();
+			document.getElementById('bookSeriesPanel').style.display = 'none';
+			currentBookNotes = null;
+			currentThemes = [];
+			currentTheme = "";
+			currentAngles = [];
+			currentAngleIndex = 0;
+		};
+		reader.readAsText(file, 'UTF-8');
+	}
+
+	async function extractAndSaveNotes() {
+		if (!currentBookContent) return;
+		const preview = document.getElementById('bookPreview');
+		if (!preview) return;
+		preview.innerHTML = `📖 正在提取笔记（可能需要几分钟）...`;
+		try {
+			const notes = await extractAllNotes(currentBookContent, currentBookName);
+			currentBookNotes = notes;
+			authors[currentAuthorId].profile.book_notes = notes;
+			saveCurrentAuthor();
+			preview.innerHTML = `📖 书籍《${currentBookName}》笔记提取完成！共 ${Object.values(notes).flat().length} 条素材。`;
+			document.getElementById('bookSeriesPanel').style.display = 'block';
+			document.getElementById('generateSeriesBtn').style.display = 'inline-block';
+		} catch (err) {
+			preview.innerHTML = `❌ 提取失败：${err.message}`;
+			alert(`提取失败：${err.message}`);
+		}
+	}
+
+	function showBookNotesPreview() {
+		const notes = authors[currentAuthorId].profile.book_notes;
+		if (notes) {
+			const preview = document.getElementById('bookPreview');
+			if (preview) {
+				preview.style.display = 'block';
+				const total = Object.values(notes).flat().length;
+				preview.innerHTML = `📖 书籍《${currentBookName}》笔记已存在，共 ${total} 条素材。`;
+			}
+			currentBookNotes = notes;
+			document.getElementById('bookSeriesPanel').style.display = 'block';
+			document.getElementById('generateSeriesBtn').style.display = 'inline-block';
+		}
+	}
+
+	function clearBook() {
+		currentBookContent = null;
+		currentBookName = "";
+		authors[currentAuthorId].profile.book_notes = null;
+		currentBookNotes = null;
+		currentThemes = [];
+		currentTheme = "";
+		currentAngles = [];
+		currentAngleIndex = 0;
+		saveCurrentAuthor();
+		const preview = document.getElementById('bookPreview');
+		if (preview) preview.style.display = 'none';
+		document.getElementById('extractNotesBtn').style.display = 'none';
+		document.getElementById('clearBookBtn').style.display = 'none';
+		document.getElementById('bookSeriesPanel').style.display = 'none';
+		document.getElementById('bookFile').value = '';
+	}
+
+	async function onGenerateSeries() {
+		if (!currentBookNotes) {
+			alert('请先提取笔记');
+			return;
+		}
+		const targetCount = parseInt(document.getElementById('articleCount').value);
+		if (isNaN(targetCount) || targetCount < 1) {
+			alert('篇数无效');
+			return;
+		}
+		const preview = document.getElementById('bookPreview');
+		if (preview) preview.innerHTML = `📖 正在分析书籍主题和生成系列角度...`;
+		try {
+			const profile = authors[currentAuthorId].profile;
+			const data = await generateThemesAndAngles(currentBookNotes, profile, targetCount);
+			if (!data.themes || data.themes.length === 0) throw new Error('未生成主题');
+			currentThemes = data.themes;
+			currentAngles = data.angles || [];
+			if (currentAngles.length === 0) throw new Error('未生成角度');
+			// 显示主题列表
+			const themeContainer = document.getElementById('themeContainer');
+			const themeListDiv = document.getElementById('themeList');
+			if (themeContainer && themeListDiv) {
+				themeListDiv.innerHTML = '';
+				currentThemes.forEach((theme, idx) => {
+					const tag = document.createElement('div');
+					tag.className = 'theme-tag' + (idx === 0 ? ' selected' : '');
+					tag.textContent = theme;
+					tag.onclick = () => {
+						document.querySelectorAll('.theme-tag').forEach(t => t.classList.remove('selected'));
+						tag.classList.add('selected');
+						currentTheme = theme;
+					};
+					themeListDiv.appendChild(tag);
+				});
+				currentTheme = currentThemes[0];
+				themeContainer.style.display = 'block';
+			}
+			// 显示角度列表
+			const angleContainer = document.getElementById('angleContainer');
+			const angleListDiv = document.getElementById('angleList');
+			if (angleContainer && angleListDiv) {
+				angleListDiv.innerHTML = '';
+				currentAngles.forEach((angleObj, idx) => {
+					const div = document.createElement('div');
+					div.className = 'angle-item';
+					div.textContent = `${idx+1}. ${angleObj.angle}`;
+					angleListDiv.appendChild(div);
+				});
+				document.getElementById('angleCount').textContent = currentAngles.length;
+				document.getElementById('totalAngles').textContent = currentAngles.length;
+				angleContainer.style.display = 'block';
+			}
+			// 显示进度控制
+			const seriesProgress = document.getElementById('seriesProgress');
+			if (seriesProgress) {
+				seriesProgress.style.display = 'flex';
+				document.getElementById('currentIndex').textContent = '1';
+				currentAngleIndex = 0;
+				document.getElementById('generateCurrentBtn').disabled = false;
+				document.getElementById('nextArticleBtn').disabled = true;
+			}
+			if (preview) preview.innerHTML = `📖 系列角度生成完成，共 ${currentAngles.length} 篇。点击“生成当前篇”开始写作。`;
+		} catch (err) {
+			if (preview) preview.innerHTML = `❌ 生成失败：${err.message}`;
+			alert(`生成失败：${err.message}`);
+		}
+	}
+
+	function nextArticle() {
+		if (currentAngleIndex + 1 < currentAngles.length) {
+			currentAngleIndex++;
+			document.getElementById('currentIndex').textContent = currentAngleIndex + 1;
+			document.getElementById('generatedArticle').innerText = '';
+			currentGeneratedText = '';
+			document.getElementById('copyArticleBtn').style.display = 'none';
+			document.getElementById('modifyArticleBtn').style.display = 'none';
+			document.getElementById('genStatus').innerHTML = '就绪，点击“生成当前篇”';
+			document.getElementById('nextArticleBtn').disabled = true;
+			document.getElementById('generateCurrentBtn').disabled = false;
+		} else {
+			alert('已是最后一篇');
+		}
+	}
+
+	function setMode(isBook) {
+		bookMode = isBook;
+		if (bookMode) {
+			document.getElementById('bookPanel').style.display = 'block';
+			document.getElementById('modeBook').classList.add('active');
+			document.getElementById('modeNormal').classList.remove('active');
+			if (authors[currentAuthorId].profile.book_notes) {
+				showBookNotesPreview();
+			}
+		} else {
+			document.getElementById('bookPanel').style.display = 'none';
+			document.getElementById('modeNormal').classList.add('active');
+			document.getElementById('modeBook').classList.remove('active');
+		}
+	}
+
+	function initEventListeners() {
+		// 设置按钮
+		document.getElementById('settingsBtn').onclick = openModal;
+		document.getElementById('closeModalBtn').onclick = closeModal;
+		document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) closeModal(); });
+		document.getElementById('saveApiBtn').onclick = saveApiConfig;
+		document.getElementById('testApiBtn').onclick = testApiConnection;
+		document.getElementById('completeProfileBtn').onclick = completeProfile;
+
+		// 作者管理
+		document.getElementById('newAuthorModalBtn').onclick = createNewAuthor;
+		document.getElementById('exportAuthorModalBtn').onclick = exportAuthor;
+		const importFileInput = document.getElementById('importFileDirect');
+		importFileInput.onchange = (e) => {
+			if (e.target.files[0]) {
+				const file = e.target.files[0];
+				const reader = new FileReader();
+				reader.onload = (ev) => {
+					try {
+						const imported = JSON.parse(ev.target.result);
+						authors[currentAuthorId].profile = imported;
+						saveCurrentAuthor();
+						alert('导入成功');
+						renderAuthorListModal();
+					} catch(err) { alert('文件格式错误'); }
+				};
+				reader.readAsText(file);
+			}
+			e.target.value = '';
+		};
+
+		// 学习文章
+		const fileUpload = document.getElementById('fileUpload');
+		fileUpload.onchange = async (e) => { if (e.target.files.length) { document.getElementById('learnStatus').innerHTML = '学习中...'; await handleFiles(e.target.files); fileUpload.value = ''; } };
+		const pasteBtn = document.getElementById('pasteBtn');
+		const pasteArea = document.getElementById('pasteArea');
+		pasteBtn.onclick = () => { pasteArea.style.display = pasteArea.style.display === 'none' ? 'block' : 'none'; };
+		document.getElementById('learnPasteBtn').onclick = async () => {
+			const text = document.getElementById('pasteText').value.trim();
+			if (!text) { alert('请粘贴文章正文'); return; }
+			document.getElementById('learnStatus').innerHTML = '学习中...';
+			await learnFromText(text, '手动粘贴');
+			document.getElementById('pasteText').value = '';
+			pasteArea.style.display = 'none';
+		};
+
+		// 生成文章
+		document.getElementById('generateBtn').onclick = () => {
+			const insp = document.getElementById('inspirationInput').value.trim();
+			if (!bookMode && !insp) { alert('普通模式下请输入灵感'); return; }
+			generateArticle(insp, bookMode);
+		};
+		document.getElementById('copyArticleBtn').onclick = copyArticle;
+		document.getElementById('modifyArticleBtn').onclick = modifyArticle;
+
+		// 书籍相关
+		const bookFile = document.getElementById('bookFile');
+		bookFile.onchange = (e) => { if (e.target.files[0]) loadBookFromFile(e.target.files[0]); };
+		document.getElementById('extractNotesBtn').onclick = extractAndSaveNotes;
+		document.getElementById('clearBookBtn').onclick = clearBook;
+		document.getElementById('generateSeriesBtn').onclick = onGenerateSeries;
+		document.getElementById('generateCurrentBtn').onclick = () => generateArticle('', true);
+		document.getElementById('nextArticleBtn').onclick = nextArticle;
+
+		// 模式切换
+		document.getElementById('modeNormal').onclick = () => setMode(false);
+		document.getElementById('modeBook').onclick = () => setMode(true);
+
+		// 主动提问
+		document.getElementById('askQuestionBtn').onclick = askActiveQuestion;
+
+		// 底部导航
+		document.querySelectorAll('.nav-item').forEach(item => {
+			item.onclick = () => switchPage(item.dataset.page);
+		});
+	}
+
+	// 页面加载完成后初始化
+	window.addEventListener('DOMContentLoaded', () => {
+		loadAllData();
+		initDarkMode();
+		loadApiConfig();
+		initEventListeners();
+		console.log('初始化完成');
+	});
+</script>
+</body>
+</html>
